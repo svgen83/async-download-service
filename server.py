@@ -1,13 +1,33 @@
-from aiohttp import web
+import asyncio
 import aiofiles
 import datetime
 
-INTERVAL_SECS = 1
+from aiohttp import web
 
+
+INTERVAL_SECS = 1
+CHUNK_SIZE = 102400
 
 
 async def archive(request):
-    raise NotImplementedError
+    base_dir = 'test_photos'
+    archive_hash = request.match_info['archive_hash']
+    path_to_files = f'{base_dir}/{archive_hash}/'
+    
+    response = web.StreamResponse()
+    response.headers['Content-Disposition'] = 'attachment; filename=archive.zip'
+    await response.prepare(request)
+    
+    proc = await asyncio.create_subprocess_exec(
+            "zip",
+            *("-r", "-", "."),
+            cwd = path_to_files,
+            stdout=asyncio.subprocess.PIPE)
+    while not proc.stdout.at_eof():
+        chunk = await proc.stdout.read(CHUNK_SIZE)
+        await response.write(chunk)
+        await asyncio.sleep(INTERVAL_SECS)
+    return response
 
 
 async def handle_index_page(request):
@@ -15,31 +35,12 @@ async def handle_index_page(request):
         index_contents = await index_file.read()
     return web.Response(text=index_contents, content_type='text/html')
 
-async def uptime_handler(request):
-    
-    response = web.StreamResponse()
-
-    # Большинство браузеров не отрисовывают частично загруженный контент, только если это не HTML.
-    # Поэтому отправляем клиенту именно HTML, указываем это в Content-Type.
-    response.headers['Content-Type'] = 'text/html'
-
-    # Отправляет клиенту HTTP заголовки
-    await response.prepare(request)
-
-    while True:
-        formatted_date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        message = f'{formatted_date}<br>'  # <br> — HTML тег переноса строки
-
-        # Отправляет клиенту очередную порцию ответа
-        await response.write(message.encode('utf-8'))
-
-        await asyncio.sleep(INTERVAL_SECS)
 
 if __name__ == '__main__':
     app = web.Application()
     app.add_routes([
-        #web.get('/', handle_index_page),
-        web.get('/', uptime_handler),
-        #web.get('/archive/{archive_hash}/', archive),
+        web.get('/', handle_index_page),
+        #web.get('/', uptime_handler),
+        web.get('/archive/{archive_hash}/', archive),
     ])
     web.run_app(app)
