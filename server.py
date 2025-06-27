@@ -9,7 +9,6 @@ from aiohttp import web
 from dotenv import load_dotenv
 
 
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('download-server')
 
 INTERVAL_SECS = 0
@@ -70,17 +69,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
                     description='Программа для скачивания архива')
 
-    parser.add_argument('--make_logging', '-l',
-                        help='Включить логирование',
-                        action='store_true')
-    parser.add_argument('--delay', '-d',
-                        help='Включить задержку ответа при скачивании архива',
-                        default=INTERVAL_SECS,
-                        type=int)
-    parser.add_argument('--folder_path', '-fp',
-                        help='Указать путь к папке с файлами',
-                        default=BASE_DIR,
-                        type=str)
+    parser.add_argument(
+        '--make_logging', '-l',
+        help='Включить логирование',
+        action='store_true')
+    parser.add_argument(
+        '--delay', '-d',
+        help='Включить задержку ответа при скачивании архива',
+        default=INTERVAL_SECS,
+        type=int)
+    parser.add_argument(
+        '--folder_path', '-fp',
+        help='Указать путь к папке с файлами',
+        default=BASE_DIR,
+        type=str)
     parser.add_argument(
         '--chunk_size', '-cs',
         help='Определить размер части архива при скачивании в кБ',
@@ -89,8 +91,8 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if not args.make_logging:
-        logging.disable
+    if  args.make_logging:
+        logging.basicConfig(level=logging.INFO)
 
     app = web.Application()
     app.add_routes([
